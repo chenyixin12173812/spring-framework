@@ -913,6 +913,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		if (beanDefinition instanceof AbstractBeanDefinition) {
 			try {
+				//不同之前的xml检查，对于AbstractBeanDefinition中的methodOverride校验
+				// 检查methodOverride方法和工厂方法并存，或者methodOverride方法根本不存在
 				((AbstractBeanDefinition) beanDefinition).validate();
 			}
 			catch (BeanDefinitionValidationException ex) {
@@ -972,6 +974,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		}
 
 		if (existingDefinition != null || containsSingleton(beanName)) {
+			//重置所有beanName的缓存
 			resetBeanDefinition(beanName);
 		}
 	}
