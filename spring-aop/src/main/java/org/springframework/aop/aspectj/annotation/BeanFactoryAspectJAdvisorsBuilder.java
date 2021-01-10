@@ -81,41 +81,53 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 	 * @see #isEligibleBean
 	 */
 	public List<Advisor> buildAspectJAdvisors() {
+		//1 尝试从缓存中获取aspectNames
 		List<String> aspectNames = this.aspectBeanNames;
-
+		//2 为空，加载所有类型的Advisor
 		if (aspectNames == null) {
 			synchronized (this) {
 				aspectNames = this.aspectBeanNames;
 				if (aspectNames == null) {
 					List<Advisor> advisors = new ArrayList<>();
 					aspectNames = new ArrayList<>();
+					//2 返回所有beanName,Object类型很耗时
 					String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 							this.beanFactory, Object.class, true, false);
 					for (String beanName : beanNames) {
+						//3 验证beanName合法
 						if (!isEligibleBean(beanName)) {
 							continue;
 						}
 						// We must be careful not to instantiate beans eagerly as in this case they
 						// would be cached by the Spring container but would not have been weaved.
+						//我们必须小心不要像在本例中那样急切地实例化bean,将被Spring容器缓存，但不会被编织。
 						Class<?> beanType = this.beanFactory.getType(beanName);
 						if (beanType == null) {
 							continue;
 						}
+						// 4 提取类被@Aspect标记的bean
 						if (this.advisorFactory.isAspect(beanType)) {
+							//4.1是切片类,加入缓存
 							aspectNames.add(beanName);
+							//包装为AspectMetadata类型
 							AspectMetadata amd = new AspectMetadata(beanType, beanName);
+							//4.2 一般都是单例的
 							if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
 								MetadataAwareAspectInstanceFactory factory =
 										new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+								// advisorFactory 获得Advisors
 								List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
+								// 是单例的放入advisorsCache.
 								if (this.beanFactory.isSingleton(beanName)) {
 									this.advisorsCache.put(beanName, classAdvisors);
 								}
+								// 不是单例的放入aspectFactoryCache.
 								else {
 									this.aspectFactoryCache.put(beanName, factory);
 								}
 								advisors.addAll(classAdvisors);
 							}
+							// 4.3 非单例的
 							else {
 								// Per target or per this.
 								if (this.beanFactory.isSingleton(beanName)) {
@@ -134,16 +146,19 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 				}
 			}
 		}
-
+        //3 还是空直接返回空
 		if (aspectNames.isEmpty()) {
 			return Collections.emptyList();
 		}
+		//4 aspectNames不为空 重缓存中拿
 		List<Advisor> advisors = new ArrayList<>();
 		for (String aspectName : aspectNames) {
 			List<Advisor> cachedAdvisors = this.advisorsCache.get(aspectName);
+			//4.1 不为空直接收集
 			if (cachedAdvisors != null) {
 				advisors.addAll(cachedAdvisors);
 			}
+			//4.2 为空，使用MetadataAwareAspectInstanceFactory创建，放入缓存，并返回
 			else {
 				MetadataAwareAspectInstanceFactory factory = this.aspectFactoryCache.get(aspectName);
 				advisors.addAll(this.advisorFactory.getAdvisors(factory));

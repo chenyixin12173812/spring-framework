@@ -159,12 +159,16 @@ public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Clonea
 	@Nullable
 	public Object proceed() throws Throwable {
 		// We start with an index of -1 and increment early.
+		// 1 procee方法递归出口
 		if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
 			return invokeJoinpoint();
 		}
 
+		// 2获得下一个拦截器
 		Object interceptorOrInterceptionAdvice =
 				this.interceptorsAndDynamicMethodMatchers.get(++this.currentInterceptorIndex);
+		// 3区分拦截器类型
+		// 3,1
 		if (interceptorOrInterceptionAdvice instanceof InterceptorAndDynamicMethodMatcher) {
 			// Evaluate dynamic method matcher here: static part will already have
 			// been evaluated and found to match.
@@ -180,6 +184,9 @@ public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Clonea
 				return proceed();
 			}
 		}
+		//3。2普通拦截器
+		//ExploseInvocation delegaratePerTargeObjectInroductionInterceptor
+		//MethodBeforeAdivceInvocation AspectAfterAdvice AspectAroundAdvice
 		else {
 			// It's an interceptor, so we just invoke it: The pointcut will have
 			// been evaluated statically before this object was constructed.

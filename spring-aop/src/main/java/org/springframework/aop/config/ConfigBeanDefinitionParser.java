@@ -103,6 +103,7 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 				new CompositeComponentDefinition(element.getTagName(), parserContext.extractSource(element));
 		parserContext.pushContainingComponent(compositeDef);
 
+		// 是否强制生成代理类 proxy-target-class '{@code proxy-target-class}' attribute is set to '{@code true}
 		configureAutoProxyCreator(parserContext, element);
 
 		List<Element> childElts = DomUtils.getChildElements(element);
@@ -130,6 +131,7 @@ class ConfigBeanDefinitionParser implements BeanDefinitionParser {
 	 * @see AopNamespaceUtils
 	 */
 	private void configureAutoProxyCreator(ParserContext parserContext, Element element) {
+		// 注册registerAspectJAutoProxyCreator
 		AopNamespaceUtils.registerAspectJAutoProxyCreatorIfNecessary(parserContext, element);
 	}
 

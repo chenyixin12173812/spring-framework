@@ -3,7 +3,7 @@ package com.chenyixin.bean;
 import org.springframework.stereotype.Service;
 
 @Service
-public class MyTestBean {
+public class MyTestBean extends TestAbstract{
 	private String name = "ChenHao";
 
 
@@ -15,7 +15,7 @@ public class MyTestBean {
 	public String toString() {
 		return "MyTestBean{" +
 				"name='" + name + '\'' +
-				'}';
+				'}' +super.toString();
 	}
 
 	public String getName() {

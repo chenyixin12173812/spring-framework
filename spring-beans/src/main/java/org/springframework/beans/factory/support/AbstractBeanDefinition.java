@@ -147,7 +147,6 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 
 //	bean是否为抽象的
 	private boolean abstractFlag = false;
-
 	@Nullable
 	private Boolean lazyInit;
 	//自动注入模式
@@ -164,6 +163,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
     //用于记录子Qualifier标签
 	private final Map<String, AutowireCandidateQualifier> qualifiers = new LinkedHashMap<>();
 
+	//创建bean实例的回调Supplier
 	@Nullable
 	private Supplier<?> instanceSupplier;
 
@@ -1143,6 +1143,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * @throws BeanDefinitionValidationException in case of validation failure
 	 */
 	protected void prepareMethodOverride(MethodOverride mo) throws BeanDefinitionValidationException {
+		//获得对应方法个数
 		int count = ClassUtils.getMethodCountForName(getBeanClass(), mo.getMethodName());
 		if (count == 0) {
 			throw new BeanDefinitionValidationException(
@@ -1151,6 +1152,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		}
 		else if (count == 1) {
 			// Mark override as not overloaded, to avoid the overhead of arg type checking.
+			//如果目标方法只有一个（多个要要进行参数匹配的问题），没有被重载，则标记override属性为false，以免参数检测
 			mo.setOverloaded(false);
 		}
 	}

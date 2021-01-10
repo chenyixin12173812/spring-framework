@@ -242,27 +242,38 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 	@Override
 	public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
+		//1.cacheKey的格式beanClassName_beanName
 		Object cacheKey = getCacheKey(beanClass, beanName);
-
+		System.out.println("postProcessBeforeInstantiation say hello" + beanName);
+		//2 从缓存中拿 或 不需要代理直接返回null
+		//2.1检查缓存已经生成直接返回
 		if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
 			if (this.advisedBeans.containsKey(cacheKey)) {
 				return null;
 			}
+			//2.2isInfrastructureClass检查基础类（实现了以下接口 如Advice、Pointcut、Advisor、AopInfrastructureBean）
+			// 2.2 shouldSkip检查 子类 aopAdvice和原始类 object String
 			if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
 				this.advisedBeans.put(cacheKey, Boolean.FALSE);
 				return null;
 			}
 		}
 
+		//3 创建代理对象并加入缓存
+
 		// Create proxy here if we have a custom TargetSource.
 		// Suppresses unnecessary default instantiation of the target bean:
 		// The TargetSource will handle target instances in a custom fashion.
+		// 3.1 获取封装当前bean的TargetSource对象 SpringAOP代理不直接代理target,而需要通过代理TargetSource
+		// 如果不存在，则直接退出当前方法，否则从TargetSource中获取当前bean对象，并且判断是否需要将切面逻辑应用在当前bean上
 		TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
 		if (targetSource != null) {
 			if (StringUtils.hasLength(beanName)) {
 				this.targetSourcedBeans.add(beanName);
 			}
+			//3.2 获取能够应用当前bean的所有切面逻辑，advice/advisor/Interceptor
 			Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);
+			//3.3 根据切面逻辑为当前bean生成代理对象
 			Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource);
 			this.proxyTypes.put(cacheKey, proxy.getClass());
 			return proxy;
@@ -409,6 +420,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	@Nullable
 	protected TargetSource getCustomTargetSource(Class<?> beanClass, String beanName) {
 		// We can't create fancy target sources for directly registered singletons.
+		// 我们不能为直接注册的单例创建花哨的目标源
 		if (this.customTargetSourceCreators != null &&
 				this.beanFactory != null && this.beanFactory.containsBean(beanName)) {
 			for (TargetSourceCreator tsc : this.customTargetSourceCreators) {
@@ -447,8 +459,10 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		}
 
 		ProxyFactory proxyFactory = new ProxyFactory();
+		//1.拷贝当前类的属性
 		proxyFactory.copyFrom(this);
 
+		// 2.判断不是TargetClass
 		if (!proxyFactory.isProxyTargetClass()) {
 			if (shouldProxyTargetClass(beanClass, beanName)) {
 				proxyFactory.setProxyTargetClass(true);
@@ -458,16 +472,20 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			}
 		}
 
+		// 3 可能是 advise advise需要warp成DefaultPointcutAdvisor 或Advisor
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+		//4 设置要Advisor封装到proxyFactory 将interceptor适配为Advisor
 		proxyFactory.addAdvisors(advisors);
+		//5.
 		proxyFactory.setTargetSource(targetSource);
+		//6 定制代理工作
 		customizeProxyFactory(proxyFactory);
-
+		//7 缺省为false 即创建后不允许修改
 		proxyFactory.setFrozen(this.freezeProxy);
 		if (advisorsPreFiltered()) {
 			proxyFactory.setPreFiltered(true);
 		}
-
+		// 8获得代理 cglib或jdk 动态代理
 		return proxyFactory.getProxy(getProxyClassLoader());
 	}
 
@@ -513,6 +531,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		List<Object> allInterceptors = new ArrayList<>();
 		if (specificInterceptors != null) {
+			//1. 加入拦截器
 			allInterceptors.addAll(Arrays.asList(specificInterceptors));
 			if (commonInterceptors.length > 0) {
 				if (this.applyCommonInterceptorsFirst) {
@@ -532,6 +551,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		Advisor[] advisors = new Advisor[allInterceptors.size()];
 		for (int i = 0; i < allInterceptors.size(); i++) {
+			//2.封装拦截器
 			advisors[i] = this.advisorAdapterRegistry.wrap(allInterceptors.get(i));
 		}
 		return advisors;
